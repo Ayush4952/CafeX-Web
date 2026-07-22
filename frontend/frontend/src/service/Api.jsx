@@ -1,0 +1,101 @@
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000/api";
+
+export const FALLBACK_MENU = [
+  {
+    id: 1,
+    name: "Himalayan Honey Latte",
+    description: "Double espresso, steamed milk and wild Himalayan honey.",
+    price: 280,
+    imageUrl: "https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=900&q=85",
+    badge: "CafeX favorite",
+    prepMinutes: 8,
+    isAvailable: true,
+    isFeatured: true,
+    category: "Coffee",
+    categorySlug: "coffee",
+  },
+  {
+    id: 2,
+    name: "Classic Cappuccino",
+    description: "Silky microfoam over rich espresso with a cocoa finish.",
+    price: 220,
+    imageUrl: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=900&q=85",
+    prepMinutes: 7,
+    isAvailable: true,
+    isFeatured: true,
+    category: "Coffee",
+    categorySlug: "coffee",
+  },
+  {
+    id: 3,
+    name: "Caramel Cold Brew",
+    description: "Slow-steeped coffee, caramel cream and a touch of sea salt.",
+    price: 260,
+    imageUrl: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=900&q=85",
+    badge: "Cold",
+    prepMinutes: 5,
+    isAvailable: true,
+    isFeatured: true,
+    category: "Cold Drinks",
+    categorySlug: "cold-drinks",
+  },
+  {
+    id: 4,
+    name: "Masala Chiya",
+    description: "Nepali milk tea brewed with cardamom, ginger and warm spices.",
+    price: 120,
+    imageUrl: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?auto=format&fit=crop&w=900&q=85",
+    badge: "Local",
+    prepMinutes: 8,
+    isAvailable: true,
+    isFeatured: true,
+    category: "Tea",
+    categorySlug: "tea",
+  },
+  {
+    id: 5,
+    name: "Butter Croissant",
+    description: "Flaky, golden layers baked fresh every morning.",
+    price: 180,
+    imageUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=900&q=85",
+    badge: "Fresh baked",
+    prepMinutes: 4,
+    isAvailable: true,
+    isFeatured: true,
+    category: "Bakery",
+    categorySlug: "bakery",
+  },
+  {
+    id: 6,
+    name: "Avocado Toast",
+    description: "Sourdough, smashed avocado, tomatoes, herbs and soft egg.",
+    price: 360,
+    imageUrl: "https://images.unsplash.com/photo-1541519227354-08fa5f50c44d?auto=format&fit=crop&w=900&q=85",
+    badge: "Brunch",
+    prepMinutes: 12,
+    isAvailable: true,
+    isFeatured: true,
+    category: "Breakfast",
+    categorySlug: "breakfast",
+  },
+];
+
+export async function apiRequest(path, options = {}, token) {
+  const headers = new Headers(options.headers);
+
+  if (!(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const data = response.status === 204 ? null : await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.message ?? "Something went wrong");
+  }
+
+  return data;
+}

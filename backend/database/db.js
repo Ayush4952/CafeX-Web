@@ -14,6 +14,15 @@ export const pool = mysql.createPool({
 });
 
 export async function checkDatabaseConnection() {
+  const password = process.env.DB_PASSWORD ?? "";
+  if (/^(ENTER_YOUR_|your_mysql_password|run_npm_run_db_setup)/i.test(password)) {
+    const error = new Error(
+      "Database credentials have not been configured. Run `npm run db:setup` in the backend folder.",
+    );
+    error.code = "DB_CONFIG_NOT_SET";
+    throw error;
+  }
+
   const connection = await pool.getConnection();
   try {
     await connection.ping();
