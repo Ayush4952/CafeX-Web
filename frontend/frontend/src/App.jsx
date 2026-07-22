@@ -2,10 +2,7 @@
 
 import {
   ArrowRight,
-  BarChart3,
-  Bell,
   Check,
-  ChevronDown,
   ClipboardList,
   Clock3,
   Coffee,
@@ -15,7 +12,6 @@ import {
   LogOut,
   Menu,
   Minus,
-  PackageCheck,
   Plus,
   Search,
   ShoppingBag,
@@ -23,7 +19,6 @@ import {
   Star,
   Store,
   TrendingUp,
-  User,
   Users,
   X,
 } from "lucide-react";
@@ -44,6 +39,18 @@ function money(value) {
   return `Rs. ${Number(value).toLocaleString("en-NP", { maximumFractionDigits: 2 })}`;
 }
 
+function readLocalStorage(key, fallback) {
+  if (typeof window === "undefined") return fallback;
+  const value = window.localStorage.getItem(key);
+  if (!value) return fallback;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
 export default function App() {
   const [view, setView] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -52,25 +59,19 @@ export default function App() {
   const [authMode, setAuthMode] = useState("login");
   const [authBusy, setAuthBusy] = useState(false);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", password: "", phone: "" });
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
+  const [token, setToken] = useState(() => readLocalStorage("cafex-token", null));
+  const [user, setUser] = useState(() => readLocalStorage("cafex-user", null));
   const [items, setItems] = useState(FALLBACK_MENU);
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
-  const [cart, setCart] = useState({});
+  const [cart, setCart] = useState(() => readLocalStorage("cafex-cart", {}));
   const [favorites, setFavorites] = useState(new Set());
   const [orders, setOrders] = useState([]);
   const [dashboardData, setDashboardData] = useState(null);
   const [toast, setToast] = useState(null);
 
   useEffect(() => {
-    const savedToken = window.localStorage.getItem("cafex-token");
-    const savedUser = window.localStorage.getItem("cafex-user");
-    const savedCart = window.localStorage.getItem("cafex-cart");
-    if (savedToken) setToken(savedToken);
-    if (savedUser) setUser(JSON.parse(savedUser));
-    if (savedCart) setCart(JSON.parse(savedCart));
     apiRequest("/menu")
       .then((data) => setItems(data.items))
       .catch(() => setItems(FALLBACK_MENU))

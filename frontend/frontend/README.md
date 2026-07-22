@@ -13,7 +13,17 @@ frontend/
     │   ├── component/
     │   ├── data/
     │   ├── pages/
+    │   │   ├── About.jsx
+    │   │   ├── Contact.jsx
+    │   │   ├── EditUser.jsx
+    │   │   ├── ErrorFound.jsx
+    │   │   ├── Home.jsx
+    │   │   ├── Login.jsx
+    │   │   ├── Register.jsx
+    │   │   └── User.jsx
     │   ├── service/
+    │   │   ├── Api.jsx
+    │   │   └── ProtectedRoute.jsx
     │   ├── App.css
     │   ├── App.jsx
     │   ├── index.css
@@ -22,6 +32,7 @@ frontend/
     │   ├── globals.css
     │   ├── layout.tsx
     │   └── page.tsx
+    ├── .env
     ├── .env.example
     ├── .gitignore
     ├── eslint.config.js
