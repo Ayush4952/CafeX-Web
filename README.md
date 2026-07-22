@@ -18,7 +18,7 @@ CafeX is a full-stack café ordering and management application. The frontend is
 CafeX-Web/
 ├── backend/
 │   ├── controller/       # Request handlers
-│   ├── database/         # MySQL connection, schema.sql, seed.sql
+│   ├── database/         # MySQL connection, schema, seed, Workbench guide
 │   ├── middleware/       # JWT, roles, uploads, errors
 │   ├── model/            # MySQL data access
 │   ├── route/            # Express API routes
@@ -27,14 +27,22 @@ CafeX-Web/
 │   ├── app.js
 │   └── server.js
 └── frontend/
-    ├── app/              # React pages, components, and styling
+    ├── app/              # Sites/Vinext route shell and global styling
     ├── public/           # CafeX logo, café background, social card
+    ├── src/
+    │   ├── assets/       # Shared asset references
+    │   ├── component/    # Reusable React UI
+    │   ├── data/         # Frontend fallback data
+    │   ├── pages/        # Page entry points
+    │   ├── service/      # Backend API client
+    │   └── types/        # Shared frontend types
     └── package.json
 ```
 
 ## 1. Set up MySQL Workbench
 
-1. Open MySQL Workbench and connect to your local MySQL 8 server.
+1. Open MySQL Workbench and connect to your local MySQL 8 server. See
+   `backend/database/workbench/README.md` for the illustrated folder handoff.
 2. Open `backend/database/schema.sql` and execute the complete script.
 3. Open `backend/database/seed.sql` and execute it to add the starter CafeX menu.
 4. Do not create a PostgreSQL database; the API uses `mysql2` exclusively.

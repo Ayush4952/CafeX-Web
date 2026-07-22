@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CafeXApp } from "./cafex-app";
+import HomePage from "../src/pages/Home";
 
 export const metadata: Metadata = {
   title: "CafeX — Crafted coffee, made personal",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return <CafeXApp />;
+  return <HomePage />;
 }
