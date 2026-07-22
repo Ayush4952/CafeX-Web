@@ -1,10 +1,6 @@
 import { CAFEX_LOGO } from "../assets";
 
-type LogoProps = {
-  compact?: boolean;
-};
-
-export function Logo({ compact = false }: LogoProps) {
+export function Logo({ compact = false }) {
   return (
     <span className={`brand ${compact ? "brand-compact" : ""}`}>
       <img src={CAFEX_LOGO} alt="CafeX" />

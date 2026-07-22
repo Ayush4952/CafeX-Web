@@ -1,10 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
-export async function apiRequest<T>(
-  path: string,
-  options: RequestInit = {},
-  token?: string | null,
-): Promise<T> {
+export async function apiRequest(path, options = {}, token) {
   const headers = new Headers(options.headers);
 
   if (!(options.body instanceof FormData)) {
@@ -21,5 +17,5 @@ export async function apiRequest<T>(
     throw new Error(data?.message ?? "Something went wrong");
   }
 
-  return data as T;
+  return data;
 }

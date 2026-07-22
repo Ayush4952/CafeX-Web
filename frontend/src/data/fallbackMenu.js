@@ -1,6 +1,4 @@
-import type { MenuItem } from "../types/cafe";
-
-export const FALLBACK_MENU: MenuItem[] = [
+export const FALLBACK_MENU = [
   {
     id: 1,
     name: "Himalayan Honey Latte",

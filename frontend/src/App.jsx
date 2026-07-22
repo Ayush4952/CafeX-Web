@@ -27,20 +27,12 @@ import {
   Users,
   X,
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Logo } from "../src/component/Logo";
-import { FALLBACK_MENU } from "../src/data/fallbackMenu";
-import { apiRequest } from "../src/service/api";
-import type {
-  AuthMode,
-  CafeUser,
-  DashboardData,
-  MenuItem,
-  Order,
-  View,
-} from "../src/types/cafe";
+import { useEffect, useMemo, useState } from "react";
+import { Logo } from "./component/Logo";
+import { FALLBACK_MENU } from "./data/fallbackMenu";
+import { apiRequest } from "./service/Api";
 
-const categoryIcon: Record<string, typeof Coffee> = {
+const categoryIcon = {
   coffee: Coffee,
   tea: Leaf,
   bakery: Sparkles,
@@ -48,29 +40,29 @@ const categoryIcon: Record<string, typeof Coffee> = {
   "cold-drinks": Star,
 };
 
-function money(value: number) {
+function money(value) {
   return `Rs. ${Number(value).toLocaleString("en-NP", { maximumFractionDigits: 2 })}`;
 }
 
-export function CafeXApp() {
-  const [view, setView] = useState<View>("home");
+export default function App() {
+  const [view, setView] = useState("home");
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<AuthMode>("login");
+  const [authMode, setAuthMode] = useState("login");
   const [authBusy, setAuthBusy] = useState(false);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", password: "", phone: "" });
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<CafeUser | null>(null);
-  const [items, setItems] = useState<MenuItem[]>(FALLBACK_MENU);
+  const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
+  const [items, setItems] = useState(FALLBACK_MENU);
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [category, setCategory] = useState("all");
   const [query, setQuery] = useState("");
-  const [cart, setCart] = useState<Record<number, number>>({});
-  const [favorites, setFavorites] = useState<Set<number>>(new Set());
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [cart, setCart] = useState({});
+  const [favorites, setFavorites] = useState(new Set());
+  const [orders, setOrders] = useState([]);
+  const [dashboardData, setDashboardData] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     const savedToken = window.localStorage.getItem("cafex-token");
@@ -79,7 +71,7 @@ export function CafeXApp() {
     if (savedToken) setToken(savedToken);
     if (savedUser) setUser(JSON.parse(savedUser));
     if (savedCart) setCart(JSON.parse(savedCart));
-    apiRequest<{ items: MenuItem[] }>("/menu")
+    apiRequest("/menu")
       .then((data) => setItems(data.items))
       .catch(() => setItems(FALLBACK_MENU))
       .finally(() => setLoadingMenu(false));
@@ -97,14 +89,14 @@ export function CafeXApp() {
 
   useEffect(() => {
     if (!token || view !== "orders") return;
-    apiRequest<{ orders: Order[] }>("/orders", {}, token)
+    apiRequest("/orders", {}, token)
       .then((data) => setOrders(data.orders))
       .catch((error) => setToast(error.message));
   }, [token, view]);
 
   useEffect(() => {
     if (!token || user?.role !== "admin" || view !== "admin") return;
-    apiRequest<DashboardData>("/dashboard", {}, token)
+    apiRequest("/dashboard", {}, token)
       .then(setDashboardData)
       .catch((error) => setToast(error.message));
   }, [token, user, view]);
@@ -128,7 +120,7 @@ export function CafeXApp() {
   const subtotal = cartLines.reduce((sum, line) => sum + line.item.price * line.quantity, 0);
   const tax = Number((subtotal * 0.13).toFixed(2));
 
-  function navigate(next: View) {
+  function navigate(next) {
     if ((next === "dashboard" || next === "orders") && !user) {
       setAuthMode("login");
       setAuthOpen(true);
@@ -140,7 +132,7 @@ export function CafeXApp() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function updateCart(id: number, delta: number) {
+  function updateCart(id, delta) {
     setCart((current) => {
       const nextQuantity = Math.max(0, (current[id] ?? 0) + delta);
       const next = { ...current };
@@ -150,7 +142,7 @@ export function CafeXApp() {
     });
   }
 
-  async function toggleFavorite(id: number) {
+  async function toggleFavorite(id) {
     if (!token) {
       setAuthMode("login");
       setAuthOpen(true);
@@ -166,11 +158,11 @@ export function CafeXApp() {
     try {
       await apiRequest(`/menu/${id}/favorite`, { method: nextFavorite ? "POST" : "DELETE" }, token);
     } catch (error) {
-      setToast((error as Error).message);
+      setToast(error.message);
     }
   }
 
-  async function submitAuth(event: FormEvent) {
+  async function submitAuth(event) {
     event.preventDefault();
     setAuthBusy(true);
     try {
@@ -178,7 +170,7 @@ export function CafeXApp() {
       const payload = authMode === "login"
         ? { email: authForm.email, password: authForm.password }
         : authForm;
-      const data = await apiRequest<{ user: CafeUser; token: string }>(endpoint, {
+      const data = await apiRequest(endpoint, {
         method: "POST",
         body: JSON.stringify(payload),
       });
@@ -190,7 +182,7 @@ export function CafeXApp() {
       setToast(`Welcome${authMode === "register" ? " to CafeX" : " back"}, ${data.user.fullName.split(" ")[0]}.`);
       navigate(data.user.role === "admin" ? "admin" : "dashboard");
     } catch (error) {
-      setToast((error as Error).message);
+      setToast(error.message);
     } finally {
       setAuthBusy(false);
     }
@@ -213,7 +205,7 @@ export function CafeXApp() {
       return;
     }
     try {
-      const data = await apiRequest<{ order: { orderNumber: string } }>("/orders", {
+      const data = await apiRequest("/orders", {
         method: "POST",
         body: JSON.stringify({
           items: cartLines.map((line) => ({ menuItemId: line.item.id, quantity: line.quantity })),
@@ -225,20 +217,20 @@ export function CafeXApp() {
       setToast(`Order ${data.order.orderNumber} is confirmed.`);
       navigate("orders");
     } catch (error) {
-      setToast((error as Error).message);
+      setToast(error.message);
     }
   }
 
-  async function toggleAvailability(item: MenuItem) {
+  async function toggleAvailability(item) {
     try {
-      const data = await apiRequest<{ item: MenuItem }>(`/menu/${item.id}`, {
+      const data = await apiRequest(`/menu/${item.id}`, {
         method: "PATCH",
         body: JSON.stringify({ isAvailable: !item.isAvailable }),
       }, token);
       setItems((current) => current.map((entry) => entry.id === item.id ? data.item : entry));
       setToast(`${item.name} is now ${data.item.isAvailable ? "available" : "unavailable"}.`);
     } catch (error) {
-      setToast((error as Error).message);
+      setToast(error.message);
     }
   }
 
@@ -391,18 +383,18 @@ export function CafeXApp() {
   );
 }
 
-function MenuCard({ item, quantity, favorite, onFavorite, onAdd }: { item: MenuItem; quantity: number; favorite: boolean; onFavorite: (id: number) => void; onAdd: (id: number) => void }) {
+function MenuCard({ item, quantity, favorite, onFavorite, onAdd }) {
   return <article className={`menu-card ${!item.isAvailable ? "unavailable" : ""}`}><div className="menu-image"><img src={item.imageUrl} alt={item.name} />{item.badge && <span className="item-badge">{item.badge}</span>}<button className={favorite ? "favorite-button active" : "favorite-button"} onClick={() => onFavorite(item.id)} aria-label={`Favorite ${item.name}`}><Heart size={18} fill={favorite ? "currentColor" : "none"} /></button></div><div className="menu-card-body"><div><small>{item.category}</small><h3>{item.name}</h3><p>{item.description}</p></div><div className="card-meta"><span><Clock3 size={14} /> {item.prepMinutes} min</span><strong>{money(item.price)}</strong></div><button className="add-button" disabled={!item.isAvailable} onClick={() => onAdd(item.id)}>{item.isAvailable ? <>{quantity > 0 ? `${quantity} in cart` : "Add to order"}<Plus size={17} /></> : "Unavailable"}</button></div></article>;
 }
 
-function Metric({ icon: Icon, label, value, note }: { icon: typeof Coffee; label: string; value: string | number; note: string }) {
+function Metric({ icon: Icon, label, value, note }) {
   return <article className="metric-card"><div><Icon /></div><span>{label}</span><strong>{value}</strong><small>{note}</small></article>;
 }
 
-function CartDrawer({ lines, subtotal, tax, onClose, onUpdate, onCheckout }: { lines: Array<{ item: MenuItem; quantity: number }>; subtotal: number; tax: number; onClose: () => void; onUpdate: (id: number, delta: number) => void; onCheckout: () => void }) {
+function CartDrawer({ lines, subtotal, tax, onClose, onUpdate, onCheckout }) {
   return <div className="drawer-layer" role="dialog" aria-modal="true" aria-label="Your cart"><button className="drawer-backdrop" onClick={onClose} aria-label="Close cart" /><aside className="cart-drawer"><div className="drawer-heading"><div><span className="eyebrow">Your order</span><h2>Something good is coming.</h2></div><button className="icon-button" onClick={onClose}><X /></button></div><div className="cart-lines">{lines.length ? lines.map(({ item, quantity }) => <div className="cart-line" key={item.id}><img src={item.imageUrl} alt="" /><span><strong>{item.name}</strong><small>{money(item.price)}</small></span><div className="quantity"><button onClick={() => onUpdate(item.id, -1)}><Minus /></button><b>{quantity}</b><button onClick={() => onUpdate(item.id, 1)}><Plus /></button></div></div>) : <div className="empty-cart"><ShoppingBag /><h3>Your cart is empty</h3><p>Choose something from the menu to get started.</p><button className="outline-button" onClick={onClose}>Keep browsing</button></div>}</div>{lines.length > 0 && <div className="cart-summary"><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><div><span>Tax</span><strong>{money(tax)}</strong></div><div className="cart-total"><span>Total</span><strong>{money(subtotal + tax)}</strong></div><button className="button checkout-button" onClick={onCheckout}>Confirm pickup order <ArrowRight size={18} /></button><small>Secure checkout · Pay at the café</small></div>}</aside></div>;
 }
 
-function AuthDialog({ mode, form, busy, onMode, onChange, onClose, onSubmit }: { mode: AuthMode; form: { fullName: string; email: string; password: string; phone: string }; busy: boolean; onMode: (mode: AuthMode) => void; onChange: (form: { fullName: string; email: string; password: string; phone: string }) => void; onClose: () => void; onSubmit: (event: FormEvent) => void }) {
+function AuthDialog({ mode, form, busy, onMode, onChange, onClose, onSubmit }) {
   return <div className="auth-layer" role="dialog" aria-modal="true" aria-label={mode === "login" ? "Sign in" : "Create account"}><div className="auth-visual"><div className="auth-shade" /><Logo compact /><div><span className="eyebrow">Welcome to CafeX</span><h2>Great coffee<br />starts here.</h2><p>Order ahead, save your favorites, and make every visit feel effortless.</p></div></div><div className="auth-panel"><button className="auth-close" onClick={onClose}><X /></button><div className="auth-copy"><span className="eyebrow">{mode === "login" ? "Welcome back" : "Join the neighborhood"}</span><h2>{mode === "login" ? "Sign in to CafeX" : "Create your account"}</h2><p>{mode === "login" ? "Your favorites and order history are waiting." : "Start earning beans with your very first order."}</p></div><form onSubmit={onSubmit}>{mode === "register" && <label>Full name<input required minLength={2} value={form.fullName} onChange={(event) => onChange({ ...form, fullName: event.target.value })} placeholder="Your name" /></label>}<label>Email address<input required type="email" value={form.email} onChange={(event) => onChange({ ...form, email: event.target.value })} placeholder="you@example.com" /></label>{mode === "register" && <label>Phone <span>Optional</span><input value={form.phone} onChange={(event) => onChange({ ...form, phone: event.target.value })} placeholder="98XXXXXXXX" /></label>}<label>Password<input required type="password" minLength={mode === "register" ? 8 : 1} value={form.password} onChange={(event) => onChange({ ...form, password: event.target.value })} placeholder="At least 8 characters" /></label><button className="button auth-submit" disabled={busy}>{busy ? <><LoaderCircle className="spin" /> Please wait</> : <>{mode === "login" ? "Sign in" : "Create account"}<ArrowRight size={18} /></>}</button></form><div className="auth-switch">{mode === "login" ? "New to CafeX?" : "Already a member?"}<button onClick={() => onMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "Create an account" : "Sign in"}</button></div></div></div>;
 }
