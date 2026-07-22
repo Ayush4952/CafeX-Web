@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node --watch server.js",
     "start": "node server.js",
+    "db:setup": "node scripts/setupDatabase.js",
     "test": "node --test tests/*.test.js",
     "create-admin": "node scripts/createAdmin.js"
   },
