@@ -31,8 +31,84 @@ SELECT id, 'Butter Croissant', 'Flaky, golden layers baked fresh every morning.'
 FROM categories WHERE slug = 'bakery'
 UNION ALL
 SELECT id, 'Avocado Toast', 'Sourdough, smashed avocado, tomatoes, herbs and soft egg.', 360.00,
-  'https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?auto=format&fit=crop&w=900&q=85', 'Brunch', 12, TRUE, TRUE
+  '/avocado-toast.jpg', 'Brunch', 12, TRUE, TRUE
 FROM categories WHERE slug = 'breakfast'
+UNION ALL
+SELECT id, 'Kathmandu Mocha', 'Espresso, dark chocolate and steamed milk with a cocoa dusting.', 290.00,
+  'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=85', 'Chocolate', 8, TRUE, FALSE
+FROM categories WHERE slug = 'coffee'
+UNION ALL
+SELECT id, 'Velvet Flat White', 'A smooth double ristretto finished with a thin layer of microfoam.', 240.00,
+  'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=900&q=85', NULL, 7, TRUE, FALSE
+FROM categories WHERE slug = 'coffee'
+UNION ALL
+SELECT id, 'Cafe Americano', 'Fresh espresso lengthened with hot water for a clean, bold cup.', 180.00,
+  'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=85', NULL, 5, TRUE, FALSE
+FROM categories WHERE slug = 'coffee'
+UNION ALL
+SELECT id, 'Himalayan Black Tea', 'Bright high-grown black tea with honeyed malt and floral notes.', 140.00,
+  'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=900&q=85', 'Nepal grown', 6, TRUE, FALSE
+FROM categories WHERE slug = 'tea'
+UNION ALL
+SELECT id, 'Lemon Ginger Tea', 'Fresh ginger, lemon and honey steeped into a warming herbal cup.', 150.00,
+  'https://images.unsplash.com/photo-1594631252845-29fc4cc8cde9?auto=format&fit=crop&w=900&q=85', 'Caffeine free', 7, TRUE, FALSE
+FROM categories WHERE slug = 'tea'
+UNION ALL
+SELECT id, 'Matcha Latte', 'Ceremonial-style matcha whisked with lightly sweetened steamed milk.', 260.00,
+  'https://images.unsplash.com/photo-1515823662972-da6a2e4d3002?auto=format&fit=crop&w=900&q=85', NULL, 8, TRUE, FALSE
+FROM categories WHERE slug = 'tea'
+UNION ALL
+SELECT id, 'Mint Green Tea', 'Delicate green tea infused with cooling garden mint.', 140.00,
+  'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&w=900&q=85', 'Refreshing', 6, TRUE, FALSE
+FROM categories WHERE slug = 'tea'
+UNION ALL
+SELECT id, 'Chocolate Croissant', 'Buttery laminated pastry wrapped around rich dark chocolate.', 220.00,
+  'https://images.unsplash.com/photo-1623334044303-241021148842?auto=format&fit=crop&w=900&q=85', NULL, 4, TRUE, FALSE
+FROM categories WHERE slug = 'bakery'
+UNION ALL
+SELECT id, 'Cinnamon Roll', 'Soft brioche swirled with cinnamon sugar and vanilla glaze.', 210.00,
+  'https://images.unsplash.com/photo-1509365465985-25d11c17e812?auto=format&fit=crop&w=900&q=85', 'Sweet', 5, TRUE, FALSE
+FROM categories WHERE slug = 'bakery'
+UNION ALL
+SELECT id, 'Blueberry Muffin', 'Tender vanilla muffin packed with blueberries and a crisp top.', 190.00,
+  'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=900&q=85', NULL, 3, TRUE, FALSE
+FROM categories WHERE slug = 'bakery'
+UNION ALL
+SELECT id, 'Banana Bread', 'Moist banana loaf with toasted walnuts and a hint of cinnamon.', 170.00,
+  '/banana-bread.jpg', 'House baked', 3, TRUE, FALSE
+FROM categories WHERE slug = 'bakery'
+UNION ALL
+SELECT id, 'CafeX Breakfast Plate', 'Eggs, toast, breakfast potatoes, greens and grilled tomato.', 480.00,
+  'https://images.unsplash.com/photo-1533089860892-a7c6f0a88666?auto=format&fit=crop&w=900&q=85', 'Hearty', 16, TRUE, FALSE
+FROM categories WHERE slug = 'breakfast'
+UNION ALL
+SELECT id, 'Eggs Benedict', 'Poached eggs and hollandaise over toasted English muffins.', 420.00,
+  'https://images.unsplash.com/photo-1608039829572-78524f79c4c7?auto=format&fit=crop&w=900&q=85', NULL, 15, TRUE, FALSE
+FROM categories WHERE slug = 'breakfast'
+UNION ALL
+SELECT id, 'Pancake Stack', 'Fluffy pancakes with seasonal fruit, butter and maple syrup.', 340.00,
+  'https://images.unsplash.com/photo-1528207776546-365bb710ee93?auto=format&fit=crop&w=900&q=85', 'Weekend favorite', 14, TRUE, FALSE
+FROM categories WHERE slug = 'breakfast'
+UNION ALL
+SELECT id, 'Granola Yogurt Bowl', 'Creamy yogurt, house granola, fresh fruit and Himalayan honey.', 300.00,
+  'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=900&q=85', 'Light', 6, TRUE, FALSE
+FROM categories WHERE slug = 'breakfast'
+UNION ALL
+SELECT id, 'Iced Americano', 'Double espresso poured over cold water and ice.', 190.00,
+  'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=900&q=85', NULL, 4, TRUE, FALSE
+FROM categories WHERE slug = 'cold-drinks'
+UNION ALL
+SELECT id, 'Mango Lassi', 'Ripe mango blended with yogurt, cardamom and a touch of honey.', 250.00,
+  'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=900&q=85', 'Seasonal', 5, TRUE, FALSE
+FROM categories WHERE slug = 'cold-drinks'
+UNION ALL
+SELECT id, 'Strawberry Lemonade', 'Fresh strawberry, lemon and sparkling water over ice.', 220.00,
+  '/strawberry-lemonade.jpg', 'Sparkling', 5, TRUE, FALSE
+FROM categories WHERE slug = 'cold-drinks'
+UNION ALL
+SELECT id, 'Iced Matcha', 'Whisked matcha, cold milk and vanilla served over ice.', 270.00,
+  'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=900&q=85', NULL, 6, TRUE, FALSE
+FROM categories WHERE slug = 'cold-drinks'
 ON DUPLICATE KEY UPDATE
   description = VALUES(description),
   price = VALUES(price),

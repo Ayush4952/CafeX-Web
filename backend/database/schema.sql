@@ -11,13 +11,17 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(190) NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   phone VARCHAR(30) NULL,
-  role ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
+  role ENUM('customer', 'staff', 'admin') NOT NULL DEFAULT 'customer',
   avatar_url VARCHAR(500) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY users_email_unique (email)
 ) ENGINE=InnoDB;
+
+-- Keep existing CafeX databases in sync when this schema is run again.
+ALTER TABLE users
+  MODIFY COLUMN role ENUM('customer', 'staff', 'admin') NOT NULL DEFAULT 'customer';
 
 CREATE TABLE IF NOT EXISTS categories (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,

@@ -1,5 +1,9 @@
 import { pool } from "../database/db.js";
-import { calculateOrderTotals, createOrderNumber } from "../utils/order.js";
+import {
+  calculateEstimatedPrepMinutes,
+  calculateOrderTotals,
+  createOrderNumber,
+} from "../utils/order.js";
 
 export async function createOrder({ userId, items, fulfillment, tableNumber, notes }) {
   const connection = await pool.getConnection();
@@ -8,7 +12,9 @@ export async function createOrder({ userId, items, fulfillment, tableNumber, not
     const ids = [...new Set(items.map((item) => Number(item.menuItemId)))];
     const placeholders = ids.map(() => "?").join(",");
     const [menuRows] = await connection.execute(
-      `SELECT id, name, price, is_available AS isAvailable
+      `SELECT id, name, price, image_url AS imageUrl,
+        prep_minutes AS prepMinutes,
+        is_available AS isAvailable
        FROM menu_items WHERE id IN (${placeholders}) FOR UPDATE`,
       ids,
     );
@@ -26,20 +32,24 @@ export async function createOrder({ userId, items, fulfillment, tableNumber, not
         itemName: menuItem.name,
         unitPrice: Number(menuItem.price),
         quantity: Number(item.quantity),
+        prepMinutes: Number(menuItem.prepMinutes),
+        imageUrl: menuItem.imageUrl,
       };
     });
 
     const totals = calculateOrderTotals(lines);
+    const estimatedPrepMinutes = calculateEstimatedPrepMinutes(lines);
     const orderNumber = createOrderNumber();
     const [orderResult] = await connection.execute(
       `INSERT INTO orders
-        (order_number, user_id, fulfillment, table_number, subtotal, tax, total, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (order_number, user_id, status, fulfillment, table_number, subtotal, tax, total, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         orderNumber,
         userId,
+        "preparing",
         fulfillment,
-        tableNumber || null,
+        tableNumber ? String(tableNumber) : null,
         totals.subtotal,
         totals.tax,
         totals.total,
@@ -64,7 +74,22 @@ export async function createOrder({ userId, items, fulfillment, tableNumber, not
     );
 
     await connection.commit();
-    return { id: orderResult.insertId, orderNumber, status: "pending", ...totals };
+    return {
+      id: orderResult.insertId,
+      orderNumber,
+      status: "preparing",
+      fulfillment,
+      tableNumber: tableNumber ? String(tableNumber) : null,
+      estimatedPrepMinutes,
+      items: lines.map((line) => ({
+        menuItemId: line.menuItemId,
+        name: line.itemName,
+        imageUrl: line.imageUrl,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+      })),
+      ...totals,
+    };
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -75,8 +100,9 @@ export async function createOrder({ userId, items, fulfillment, tableNumber, not
 
 export async function listOrders({ userId, role }) {
   const values = [];
-  const where = role === "admin" ? "" : " WHERE o.user_id = ?";
-  if (role !== "admin") values.push(userId);
+  const canSeeAllOrders = role === "staff" || role === "admin";
+  const where = canSeeAllOrders ? "" : " WHERE o.user_id = ?";
+  if (!canSeeAllOrders) values.push(userId);
   const [orders] = await pool.execute(
     `SELECT o.id, o.order_number AS orderNumber, o.status, o.fulfillment,
       o.table_number AS tableNumber, o.subtotal, o.tax, o.total, o.notes,
@@ -85,7 +111,38 @@ export async function listOrders({ userId, role }) {
      ORDER BY o.created_at DESC`,
     values,
   );
-  return orders;
+  if (!orders.length) return orders;
+
+  const orderIds = orders.map((order) => Number(order.id));
+  const placeholders = orderIds.map(() => "?").join(",");
+  const [items] = await pool.execute(
+    `SELECT oi.order_id AS orderId, oi.menu_item_id AS menuItemId,
+      oi.item_name AS name, oi.quantity, oi.unit_price AS unitPrice,
+      m.image_url AS imageUrl
+     FROM order_items oi
+     LEFT JOIN menu_items m ON m.id = oi.menu_item_id
+     WHERE oi.order_id IN (${placeholders})
+     ORDER BY oi.id`,
+    orderIds,
+  );
+  const itemsByOrder = new Map();
+  items.forEach((item) => {
+    const orderId = Number(item.orderId);
+    const orderItems = itemsByOrder.get(orderId) ?? [];
+    orderItems.push({
+      menuItemId: item.menuItemId,
+      name: item.name,
+      imageUrl: item.imageUrl,
+      quantity: Number(item.quantity),
+      unitPrice: Number(item.unitPrice),
+    });
+    itemsByOrder.set(orderId, orderItems);
+  });
+
+  return orders.map((order) => ({
+    ...order,
+    items: itemsByOrder.get(Number(order.id)) ?? [],
+  }));
 }
 
 export async function updateOrderStatus(id, status) {
@@ -94,4 +151,12 @@ export async function updateOrderStatus(id, status) {
     [status, id],
   );
   return result.affectedRows > 0;
+}
+
+export async function clearOrdersForUser(userId) {
+  const [result] = await pool.execute(
+    "DELETE FROM orders WHERE user_id = ?",
+    [userId],
+  );
+  return result.affectedRows;
 }
