@@ -28,133 +28,17 @@ import {
   X,
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-
-type View = "home" | "menu" | "dashboard" | "orders" | "admin";
-type AuthMode = "login" | "register";
-
-type MenuItem = {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  imageUrl: string;
-  badge?: string | null;
-  prepMinutes: number;
-  isAvailable: boolean;
-  isFeatured: boolean;
-  category: string;
-  categorySlug: string;
-};
-
-type CafeUser = {
-  id: number;
-  fullName: string;
-  email: string;
-  role: "customer" | "admin";
-};
-
-type Order = {
-  id: number;
-  orderNumber: string;
-  status: string;
-  fulfillment: string;
-  total: number;
-  createdAt: string;
-  customerName?: string;
-};
-
-type DashboardData = {
-  summary: {
-    menuItems: number;
-    availableItems: number;
-    ordersToday: number;
-    revenueToday: number;
-    customers: number;
-  };
-  recentOrders: Order[];
-  categories: Array<{ name: string; itemCount: number; availableCount: number }>;
-};
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
-const FALLBACK_MENU: MenuItem[] = [
-  {
-    id: 1,
-    name: "Himalayan Honey Latte",
-    description: "Double espresso, steamed milk and wild Himalayan honey.",
-    price: 280,
-    imageUrl: "https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&w=900&q=85",
-    badge: "CafeX favorite",
-    prepMinutes: 8,
-    isAvailable: true,
-    isFeatured: true,
-    category: "Coffee",
-    categorySlug: "coffee",
-  },
-  {
-    id: 2,
-    name: "Classic Cappuccino",
-    description: "Silky microfoam over rich espresso with a cocoa finish.",
-    price: 220,
-    imageUrl: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=900&q=85",
-    prepMinutes: 7,
-    isAvailable: true,
-    isFeatured: true,
-    category: "Coffee",
-    categorySlug: "coffee",
-  },
-  {
-    id: 3,
-    name: "Caramel Cold Brew",
-    description: "Slow-steeped coffee, caramel cream and a touch of sea salt.",
-    price: 260,
-    imageUrl: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=900&q=85",
-    badge: "Cold",
-    prepMinutes: 5,
-    isAvailable: true,
-    isFeatured: true,
-    category: "Cold Drinks",
-    categorySlug: "cold-drinks",
-  },
-  {
-    id: 4,
-    name: "Masala Chiya",
-    description: "Nepali milk tea brewed with cardamom, ginger and warm spices.",
-    price: 120,
-    imageUrl: "https://images.unsplash.com/photo-1571934811356-5cc061b6821f?auto=format&fit=crop&w=900&q=85",
-    badge: "Local",
-    prepMinutes: 8,
-    isAvailable: true,
-    isFeatured: true,
-    category: "Tea",
-    categorySlug: "tea",
-  },
-  {
-    id: 5,
-    name: "Butter Croissant",
-    description: "Flaky, golden layers baked fresh every morning.",
-    price: 180,
-    imageUrl: "https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=900&q=85",
-    badge: "Fresh baked",
-    prepMinutes: 4,
-    isAvailable: true,
-    isFeatured: true,
-    category: "Bakery",
-    categorySlug: "bakery",
-  },
-  {
-    id: 6,
-    name: "Avocado Toast",
-    description: "Sourdough, smashed avocado, tomatoes, herbs and soft egg.",
-    price: 360,
-    imageUrl: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?auto=format&fit=crop&w=900&q=85",
-    badge: "Brunch",
-    prepMinutes: 12,
-    isAvailable: true,
-    isFeatured: true,
-    category: "Breakfast",
-    categorySlug: "breakfast",
-  },
-];
+import { Logo } from "../src/component/Logo";
+import { FALLBACK_MENU } from "../src/data/fallbackMenu";
+import { apiRequest } from "../src/service/api";
+import type {
+  AuthMode,
+  CafeUser,
+  DashboardData,
+  MenuItem,
+  Order,
+  View,
+} from "../src/types/cafe";
 
 const categoryIcon: Record<string, typeof Coffee> = {
   coffee: Coffee,
@@ -164,27 +48,8 @@ const categoryIcon: Record<string, typeof Coffee> = {
   "cold-drinks": Star,
 };
 
-async function apiRequest<T>(path: string, options: RequestInit = {}, token?: string | null): Promise<T> {
-  const headers = new Headers(options.headers);
-  if (!(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
-  if (token) headers.set("Authorization", `Bearer ${token}`);
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
-  const data = response.status === 204 ? null : await response.json();
-  if (!response.ok) throw new Error(data?.message ?? "Something went wrong");
-  return data as T;
-}
-
 function money(value: number) {
   return `Rs. ${Number(value).toLocaleString("en-NP", { maximumFractionDigits: 2 })}`;
-}
-
-function Logo({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className={`brand ${compact ? "brand-compact" : ""}`}>
-      <img src="/cafex-logo.png" alt="CafeX" />
-      {!compact && <span><strong>CafeX</strong><small>Roastery & kitchen</small></span>}
-    </span>
-  );
 }
 
 export function CafeXApp() {
