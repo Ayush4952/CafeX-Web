@@ -5,6 +5,14 @@ The CafeX client is a standard React application powered by Vite.
 ## Run locally
 
 ```bash
+cd frontend
+npm run install:app
+npm run dev
+```
+
+You can also run the nested Vite project directly:
+
+```bash
 cd frontend/frontend
 npm install
 npm run dev
