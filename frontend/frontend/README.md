@@ -1,45 +1,38 @@
-# CafeX frontend
+# CafeX Frontend
 
-The CafeX repository uses the requested nested frontend project. Application
-code follows a familiar Vite-style `src` structure, with a minimal `app`
-adapter retained for CafeX hosting.
+The CafeX client is a standard React application powered by Vite.
 
-```text
-frontend/
-└── frontend/
-    ├── public/
-    ├── src/
-    │   ├── assets/
-    │   ├── component/
-    │   ├── data/
-    │   ├── pages/
-    │   │   ├── About.jsx
-    │   │   ├── Contact.jsx
-    │   │   ├── EditUser.jsx
-    │   │   ├── ErrorFound.jsx
-    │   │   ├── Home.jsx
-    │   │   ├── Login.jsx
-    │   │   ├── Register.jsx
-    │   │   └── User.jsx
-    │   ├── service/
-    │   │   ├── Api.jsx
-    │   │   └── ProtectedRoute.jsx
-    │   ├── App.css
-    │   ├── App.jsx
-    │   ├── index.css
-    │   └── main.jsx
-    ├── app/
-    │   ├── globals.css
-    │   ├── layout.tsx
-    │   └── page.tsx
-    ├── .env
-    ├── .env.example
-    ├── .gitignore
-    ├── eslint.config.js
-    ├── index.html
-    ├── package-lock.json
-    ├── package.json
-    └── vite.config.js
+## Run locally
+
+```bash
+cd frontend/frontend
+npm install
+npm run dev
 ```
 
-See the root `README.md` for MySQL Workbench, backend, admin-account, and startup instructions.
+The development server runs at `http://localhost:3000`. Set `VITE_API_URL` in
+`.env` when the backend API is hosted somewhere other than
+`http://localhost:4000/api`.
+
+## Project structure
+
+```text
+frontend/frontend/
+├── public/
+├── src/
+│   ├── assets/
+│   ├── component/
+│   ├── pages/
+│   ├── service/
+│   ├── App.css
+│   ├── App.jsx
+│   ├── index.css
+│   └── main.jsx
+├── .env
+├── .gitignore
+├── eslint.config.js
+├── index.html
+├── package-lock.json
+├── package.json
+└── vite.config.js
+```

@@ -1,5 +1,3 @@
-"use client";
-
 import {
   ArrowRight,
   Check,
@@ -24,8 +22,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Logo } from "./component/Logo";
-import { FALLBACK_MENU } from "./data/fallbackMenu";
-import { apiRequest } from "./service/Api";
+import { apiRequest, FALLBACK_MENU } from "./service/Api";
 
 const categoryIcon = {
   coffee: Coffee,
