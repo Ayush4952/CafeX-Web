@@ -17,8 +17,6 @@ import {
   Star,
   Store,
   Trash2,
-  TrendingUp,
-  Users,
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -26,6 +24,7 @@ import { Logo } from "./component/Logo";
 import { apiRequest, FALLBACK_MENU } from "./service/Api";
 
 const categoryIcon = {
+  "fast-service": Clock3,
   coffee: Coffee,
   tea: Leaf,
   bakery: Sparkles,
@@ -34,9 +33,16 @@ const categoryIcon = {
 };
 
 const TABLE_NUMBERS = Array.from({ length: 15 }, (_, index) => index + 1);
+const CATEGORY_ORDER = ["fast-service", "coffee", "tea", "bakery", "breakfast", "cold-drinks"];
 
 function money(value) {
   return `Rs. ${Number(value).toLocaleString("en-NP", { maximumFractionDigits: 2 })}`;
+}
+
+function formatCountdown(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function readLocalStorage(key, fallback) {
@@ -51,21 +57,10 @@ function readLocalStorage(key, fallback) {
   }
 }
 
-function landingViewForRole(role) {
-  if (role === "admin") return "admin";
-  if (role === "staff") return "staff";
-  return "dashboard";
-}
-
-function canManageOrders(role) {
-  return role === "staff" || role === "admin";
-}
-
 export default function App() {
   const [view, setView] = useState(() => {
     const savedUser = readLocalStorage("cafex-user", null);
-    if (!savedUser) return "home";
-    return landingViewForRole(savedUser.role);
+    return savedUser?.role === "customer" ? "dashboard" : "home";
   });
   const [menuOpen, setMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
@@ -73,10 +68,15 @@ export default function App() {
   const [authMode, setAuthMode] = useState("login");
   const [authBusy, setAuthBusy] = useState(false);
   const [clearOrdersBusy, setClearOrdersBusy] = useState(false);
-  const [staffBusyOrder, setStaffBusyOrder] = useState(null);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", password: "", phone: "" });
-  const [token, setToken] = useState(() => readLocalStorage("cafex-token", null));
-  const [user, setUser] = useState(() => readLocalStorage("cafex-user", null));
+  const [token, setToken] = useState(() => {
+    const savedUser = readLocalStorage("cafex-user", null);
+    return savedUser?.role === "customer" ? readLocalStorage("cafex-token", null) : null;
+  });
+  const [user, setUser] = useState(() => {
+    const savedUser = readLocalStorage("cafex-user", null);
+    return savedUser?.role === "customer" ? savedUser : null;
+  });
   const [items, setItems] = useState(FALLBACK_MENU);
   const [loadingMenu, setLoadingMenu] = useState(true);
   const [category, setCategory] = useState("all");
@@ -85,13 +85,18 @@ export default function App() {
   const [tableNumber, setTableNumber] = useState("");
   const [favorites, setFavorites] = useState(() => new Set(readLocalStorage("cafex-favorites", [])));
   const [orders, setOrders] = useState([]);
-  const [dashboardData, setDashboardData] = useState(null);
   const [toast, setToast] = useState(null);
   const [confirmedOrder, setConfirmedOrder] = useState(null);
   const [activeOrder, setActiveOrder] = useState(() => readLocalStorage("cafex-active-order", null));
-  const [clock, setClock] = useState(() => activeOrder
-    ? Number(activeOrder.readyAt) - Number(activeOrder.estimatedPrepMinutes) * 60000
-    : 0);
+  const [clock, setClock] = useState(() => activeOrder ? Date.now() : 0);
+
+  useEffect(() => {
+    const savedUser = readLocalStorage("cafex-user", null);
+    if (savedUser && savedUser.role !== "customer") {
+      window.localStorage.removeItem("cafex-token");
+      window.localStorage.removeItem("cafex-user");
+    }
+  }, []);
 
   useEffect(() => {
     apiRequest("/menu")
@@ -132,13 +137,41 @@ export default function App() {
   }, [activeOrder]);
 
   useEffect(() => {
+    if (!activeOrder?.items?.length || !items.length) return;
+    const prepTimes = activeOrder.items
+      .map((orderItem) => items.find((item) => item.id === Number(orderItem.menuItemId))?.prepMinutes)
+      .map(Number)
+      .filter((prepMinutes) => Number.isFinite(prepMinutes) && prepMinutes > 0);
+    if (!prepTimes.length) return;
+
+    const menuPrepMinutes = Math.max(...prepTimes);
+    if (menuPrepMinutes === Number(activeOrder.estimatedPrepMinutes)) return;
+    const timer = window.setTimeout(() => {
+      setActiveOrder((current) => {
+        if (!current) return current;
+        const previousPrepMinutes = Number(current.estimatedPrepMinutes) || menuPrepMinutes;
+        const currentReadyAt = Number(current.readyAt);
+        const startedAt = Number.isFinite(currentReadyAt)
+          ? currentReadyAt - previousPrepMinutes * 60000
+          : Date.now();
+        return {
+          ...current,
+          estimatedPrepMinutes: menuPrepMinutes,
+          readyAt: startedAt + menuPrepMinutes * 60000,
+        };
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [activeOrder, items]);
+
+  useEffect(() => {
     if (!toast) return;
     const timer = window.setTimeout(() => setToast(null), 3200);
     return () => window.clearTimeout(timer);
   }, [toast]);
 
   useEffect(() => {
-    if (!token || (view !== "orders" && view !== "staff")) return;
+    if (!token || view !== "orders") return;
     let stopped = false;
     let reportedError = false;
 
@@ -147,7 +180,6 @@ export default function App() {
         const data = await apiRequest("/orders", {}, token);
         if (stopped) return;
         setOrders(data.orders);
-        if (view !== "orders") return;
         setActiveOrder((current) => {
           if (!current) return current;
           const latest = data.orders.find((order) => order.id === current.id);
@@ -155,13 +187,18 @@ export default function App() {
           if (["completed", "cancelled"].includes(latest.status)) return null;
           const shouldHydrateItems = !current.items?.length && latest.items?.length;
           const shouldHydrateDetails = !current.fulfillment || (!current.tableNumber && latest.tableNumber);
-          if (latest.status === current.status && !shouldHydrateItems && !shouldHydrateDetails) return current;
+          const shouldHydrateTotals = current.total == null && latest.total != null;
+          if (latest.status === current.status && !shouldHydrateItems
+            && !shouldHydrateDetails && !shouldHydrateTotals) return current;
           return {
             ...current,
             status: latest.status,
             items: shouldHydrateItems ? latest.items : current.items,
             fulfillment: current.fulfillment ?? latest.fulfillment,
             tableNumber: current.tableNumber ?? latest.tableNumber,
+            subtotal: current.subtotal ?? latest.subtotal,
+            tax: current.tax ?? latest.tax,
+            total: current.total ?? latest.total,
           };
         });
       } catch (error) {
@@ -173,7 +210,7 @@ export default function App() {
     }
 
     syncOrders();
-    const timer = window.setInterval(syncOrders, view === "staff" ? 8000 : 15000);
+    const timer = window.setInterval(syncOrders, 15000);
     return () => {
       stopped = true;
       window.clearInterval(timer);
@@ -183,7 +220,7 @@ export default function App() {
   useEffect(() => {
     if (!activeOrder || view !== "orders") return;
     const initialTimer = window.setTimeout(() => setClock(Date.now()), 0);
-    const timer = window.setInterval(() => setClock(Date.now()), 30000);
+    const timer = window.setInterval(() => setClock(Date.now()), 1000);
     return () => {
       window.clearTimeout(initialTimer);
       window.clearInterval(timer);
@@ -191,11 +228,22 @@ export default function App() {
   }, [activeOrder, view]);
 
   useEffect(() => {
-    if (!token || user?.role !== "admin" || view !== "admin") return;
-    apiRequest("/dashboard", {}, token)
-      .then(setDashboardData)
-      .catch((error) => setToast(error.message));
-  }, [token, user, view]);
+    if (!activeOrder || activeOrder.readyNotificationSent
+      || ["completed", "cancelled"].includes(activeOrder.status)) return;
+
+    const readyAt = Number(activeOrder.readyAt);
+    if (!Number.isFinite(readyAt)) return;
+    const delay = activeOrder.status === "ready" ? 0 : Math.max(0, readyAt - Date.now());
+    const timer = window.setTimeout(() => {
+      setClock(Date.now());
+      setActiveOrder((current) => current?.id === activeOrder.id
+        ? { ...current, readyNotificationSent: true }
+        : current);
+      setToast("Your order is ready to serve.");
+    }, delay);
+
+    return () => window.clearTimeout(timer);
+  }, [activeOrder]);
 
   const filteredItems = useMemo(() => items.filter((item) => {
     const categoryMatch = category === "all"
@@ -205,10 +253,18 @@ export default function App() {
     return categoryMatch && text.includes(query.toLowerCase());
   }), [items, category, favorites, query]);
 
-  const categories = useMemo(() => [
-    { slug: "all", name: "All favorites" },
-    ...Array.from(new Map(items.map((item) => [item.categorySlug, { slug: item.categorySlug, name: item.category }])).values()),
-  ], [items]);
+  const categories = useMemo(() => {
+    const menuCategories = Array.from(
+      new Map(items.map((item) => [
+        item.categorySlug,
+        { slug: item.categorySlug, name: item.category },
+      ])).values(),
+    ).sort((left, right) => (
+      CATEGORY_ORDER.indexOf(left.slug) - CATEGORY_ORDER.indexOf(right.slug)
+    ));
+
+    return [{ slug: "all", name: "All favorites" }, ...menuCategories];
+  }, [items]);
 
   const cartLines = useMemo(() => Object.entries(cart).flatMap(([id, quantity]) => {
     const item = items.find((entry) => entry.id === Number(id));
@@ -217,33 +273,26 @@ export default function App() {
   const cartCount = cartLines.reduce((sum, line) => sum + line.quantity, 0);
   const subtotal = cartLines.reduce((sum, line) => sum + line.item.price * line.quantity, 0);
   const tax = Number((subtotal * 0.13).toFixed(2));
-  const activeMinutesRemaining = activeOrder
-    ? Math.max(0, Math.ceil((Number(activeOrder.readyAt) - clock) / 60000))
+  const activeSecondsRemaining = activeOrder
+    ? Math.max(0, Math.ceil((Number(activeOrder.readyAt) - clock) / 1000))
     : 0;
-  const staffOrders = useMemo(() => [...orders].sort((left, right) => {
-    const statusRank = { ready: 0, preparing: 1, pending: 2, completed: 3, cancelled: 4 };
-    const rankDifference = statusRank[left.status] - statusRank[right.status];
-    if (rankDifference) return rankDifference;
-    return new Date(left.createdAt) - new Date(right.createdAt);
-  }), [orders]);
-  const activeStaffOrders = staffOrders.filter((order) => !["completed", "cancelled"].includes(order.status));
-  const finishedStaffOrders = staffOrders.filter((order) => ["completed", "cancelled"].includes(order.status));
+  const billOrder = activeOrder
+    ? orders.find((order) => order.id === activeOrder.id) ?? activeOrder
+    : orders.find((order) => order.status !== "cancelled") ?? null;
 
   function navigate(next) {
-    if ((next === "dashboard" || next === "orders" || next === "staff") && !user) {
+    if ((next === "dashboard" || next === "orders") && !user) {
       setAuthMode("login");
       setAuthOpen(true);
       return;
     }
-    if (next === "staff" && !canManageOrders(user?.role)) return;
-    if (next === "admin" && user?.role !== "admin") return;
     setView(next);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function openDashboard(authenticatedUser) {
-    setView(landingViewForRole(authenticatedUser.role));
+  function openDashboard() {
+    setView("dashboard");
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -296,13 +345,16 @@ export default function App() {
         method: "POST",
         body: JSON.stringify(payload),
       });
+      if (data.user.role !== "customer") {
+        throw new Error("This app is for customer accounts only.");
+      }
       setToken(data.token);
       setUser(data.user);
       window.localStorage.setItem("cafex-token", data.token);
       window.localStorage.setItem("cafex-user", JSON.stringify(data.user));
       setAuthOpen(false);
       setToast(`Welcome${authMode === "register" ? " to CafeX" : " back"}, ${data.user.fullName.split(" ")[0]}.`);
-      openDashboard(data.user);
+      openDashboard();
     } catch (error) {
       setToast(error.message);
     } finally {
@@ -344,16 +396,18 @@ export default function App() {
           tableNumber: Number(tableNumber),
         }),
       }, token);
-      const longestItem = Math.max(...cartLines.map((line) => Number(line.item.prepMinutes) || 10), 10);
-      const quantityBuffer = Math.ceil(Math.max(0, cartCount - 1) / 2);
+      const longestItem = Math.max(...cartLines.map((line) => Number(line.item.prepMinutes) || 10));
       const estimatedPrepMinutes = Number(data.order.estimatedPrepMinutes)
-        || longestItem + quantityBuffer + Math.floor(Math.random() * 4);
+        || longestItem;
       const nextActiveOrder = {
         id: data.order.id,
         orderNumber: data.order.orderNumber,
         status: data.order.status ?? "preparing",
         fulfillment: "dine_in",
         tableNumber,
+        subtotal: Number(data.order.subtotal ?? subtotal),
+        tax: Number(data.order.tax ?? tax),
+        total: Number(data.order.total ?? subtotal + tax),
         estimatedPrepMinutes,
         readyAt: Date.now() + estimatedPrepMinutes * 60000,
         items: data.order.items?.length ? data.order.items : cartLines.map(({ item, quantity }) => ({
@@ -361,6 +415,7 @@ export default function App() {
           name: item.name,
           imageUrl: item.imageUrl,
           quantity,
+          unitPrice: item.price,
         })),
       };
       setCart({});
@@ -395,56 +450,22 @@ export default function App() {
     }
   }
 
-  async function toggleAvailability(item) {
-    try {
-      const data = await apiRequest(`/menu/${item.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ isAvailable: !item.isAvailable }),
-      }, token);
-      setItems((current) => current.map((entry) => entry.id === item.id ? data.item : entry));
-      setToast(`${item.name} is now ${data.item.isAvailable ? "available" : "unavailable"}.`);
-    } catch (error) {
-      setToast(error.message);
-    }
-  }
-
-  async function updateStaffOrder(order, status) {
-    if (!token || !canManageOrders(user?.role) || staffBusyOrder) return;
-    setStaffBusyOrder(order.id);
-    try {
-      const data = await apiRequest(`/orders/${order.id}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-      }, token);
-      setOrders((current) => current.map((entry) => (
-        entry.id === order.id ? { ...entry, status: data.status } : entry
-      )));
-      setToast(`${order.orderNumber} marked ${data.status}.`);
-    } catch (error) {
-      setToast(error.message);
-    } finally {
-      setStaffBusyOrder(null);
-    }
-  }
-
   return (
     <div className="app-shell">
       <header className="site-header">
         <button className="logo-button" onClick={() => navigate("home")} aria-label="CafeX home"><Logo /></button>
         <nav className={menuOpen ? "main-nav nav-open" : "main-nav"} aria-label="Primary navigation">
           <button className={view === "home" ? "active" : ""} onClick={() => navigate("home")}>Home</button>
-          <button className={view === "menu" ? "active" : ""} onClick={() => navigate("menu")}>Our menu</button>
-          {user?.role === "customer" && <button className={view === "orders" ? "active" : ""} onClick={() => navigate("orders")}>Orders</button>}
-          {user?.role === "customer" && <button className={view === "dashboard" ? "active" : ""} onClick={() => navigate("dashboard")}>My CafeX</button>}
-          {canManageOrders(user?.role) && <button className={view === "staff" ? "active" : ""} onClick={() => navigate("staff")}>Staff orders</button>}
-          {user?.role === "admin" && <button className={view === "admin" ? "active" : ""} onClick={() => navigate("admin")}>Admin</button>}
+          {user && <button className={view === "menu" ? "active" : ""} onClick={() => navigate("menu")}>Our menu</button>}
+          {user && <button className={view === "orders" ? "active" : ""} onClick={() => navigate("orders")}>Orders</button>}
+          {user && <button className={view === "dashboard" ? "active" : ""} onClick={() => navigate("dashboard")}>My CafeX</button>}
         </nav>
         <div className="header-actions">
-          {!canManageOrders(user?.role) && <button className="icon-button cart-button" onClick={() => setCartOpen(true)} aria-label={`Cart with ${cartCount} items`}>
+          <button className="icon-button cart-button" onClick={() => setCartOpen(true)} aria-label={`Cart with ${cartCount} items`}>
             <ShoppingBag size={20} />{cartCount > 0 && <span>{cartCount}</span>}
-          </button>}
+          </button>
           {user ? (
-            <button className="profile-chip" onClick={() => navigate(landingViewForRole(user.role))}>
+            <button className="profile-chip" onClick={() => navigate("dashboard")}>
               <span>{user.fullName.charAt(0)}</span><b>{user.fullName.split(" ")[0]}</b>
             </button>
           ) : (
@@ -544,50 +565,15 @@ export default function App() {
 
         {view === "orders" && user && (
           <section className="page-section orders-page">
-            <div className="page-intro"><div><span className="eyebrow">Order history</span><h1>Your CafeX orders</h1><p>Track what is brewing and revisit old favorites.</p></div><div className="order-page-actions">{user.role !== "admin" && (orders.length > 0 || activeOrder) && <button className="outline-button clear-orders-button" disabled={clearOrdersBusy} onClick={clearOrderHistory}><Trash2 size={16} /> {clearOrdersBusy ? "Clearing…" : "Clear history"}</button>}<button className="button" onClick={() => navigate("menu")}>New order <Plus size={18} /></button></div></div>
-            {activeOrder && <LiveOrderNotice order={activeOrder} remainingMinutes={activeMinutesRemaining} />}
+            <div className="page-intro"><div><span className="eyebrow">Order history</span><h1>Your CafeX orders</h1><p>Track what is brewing and revisit old favorites.</p></div><div className="order-page-actions">{(orders.length > 0 || activeOrder) && <button className="outline-button clear-orders-button" disabled={clearOrdersBusy} onClick={clearOrderHistory}><Trash2 size={16} /> {clearOrdersBusy ? "Clearing…" : "Clear history"}</button>}<button className="button" onClick={() => navigate("menu")}>New order <Plus size={18} /></button></div></div>
+            {activeOrder && <LiveOrderNotice order={activeOrder} remainingSeconds={activeSecondsRemaining} />}
+            {billOrder && <TotalBill order={billOrder} />}
             <div className="orders-list">
-              {orders.length ? orders.map((order) => <article className="order-row" key={order.id}><OrderImages items={order.items} /><div><small>{order.orderNumber}</small><strong>{order.fulfillment.replace("_", " ")}{order.tableNumber ? ` · Table ${order.tableNumber}` : ""}</strong>{order.items?.length > 0 && <span className="order-item-summary">{order.items.map((item) => `${item.quantity}× ${item.name}`).join(", ")}</span>}<span>{new Date(order.createdAt).toLocaleString()}</span></div><div><span className={`status status-${order.status}`}>{order.status}</span><strong>{money(order.total)}</strong></div></article>) : <div className="empty-state"><ClipboardList /><h2>No orders yet</h2><p>Your first CafeX order will appear here.</p><button className="button" onClick={() => navigate("menu")}>Browse the menu</button></div>}
+              {orders.length ? orders.map((order) => <CustomerOrderRow key={order.id} order={order} active={order.id === activeOrder?.id} estimatedReady={order.id === activeOrder?.id && activeSecondsRemaining === 0} />) : <div className="empty-state"><ClipboardList /><h2>No orders yet</h2><p>Your first CafeX order will appear here.</p><button className="button" onClick={() => navigate("menu")}>Browse the menu</button></div>}
             </div>
           </section>
         )}
 
-        {view === "staff" && canManageOrders(user?.role) && (
-          <section className="page-section staff-page">
-            <div className="staff-header">
-              <div><span className="eyebrow">Staff only · live service</span><h1>Table order queue</h1><p>Prepare each order, call it ready, and close it once it reaches the table.</p></div>
-              <div className="staff-header-actions"><div className="live-pill"><span /> Refreshes live</div><button className="outline-button" onClick={logout}><LogOut size={16} /> Sign out</button></div>
-            </div>
-            <div className="staff-metrics">
-              <Metric icon={Clock3} label="Preparing" value={orders.filter((order) => ["pending", "preparing"].includes(order.status)).length} note="In the kitchen" />
-              <Metric icon={Check} label="Ready" value={orders.filter((order) => order.status === "ready").length} note="Waiting for service" />
-              <Metric icon={Store} label="Active tables" value={new Set(activeStaffOrders.map((order) => order.tableNumber).filter(Boolean)).size} note="Dine-in orders" />
-            </div>
-            <div className="staff-section-heading"><div><span className="eyebrow">Kitchen queue</span><h2>Active orders</h2></div><strong>{activeStaffOrders.length} open</strong></div>
-            <div className="staff-order-grid">
-              {activeStaffOrders.length ? activeStaffOrders.map((order) => (
-                <StaffOrderCard key={order.id} order={order} busy={staffBusyOrder === order.id} onStatus={updateStaffOrder} />
-              )) : <div className="empty-state staff-empty"><Check /><h2>All caught up</h2><p>New table orders will appear here automatically.</p></div>}
-            </div>
-            {finishedStaffOrders.length > 0 && <div className="staff-completed"><div className="staff-section-heading"><div><span className="eyebrow">Recently closed</span><h2>Completed orders</h2></div></div><div className="staff-completed-list">{finishedStaffOrders.slice(0, 8).map((order) => <article key={order.id}><OrderImages items={order.items} /><span><strong>{order.orderNumber}</strong><small>{order.tableNumber ? `Table ${order.tableNumber}` : "Dine in"} · {order.customerName}</small></span><span className={`status status-${order.status}`}>{order.status}</span><b>{money(order.total)}</b></article>)}</div></div>}
-          </section>
-        )}
-
-        {view === "admin" && user?.role === "admin" && (
-          <section className="page-section admin-page">
-            <div className="admin-header"><div><span className="eyebrow">Cafe operations</span><h1>Command center</h1><p>A live view of your menu, orders, and customer activity.</p></div><div className="live-pill"><span /> Live</div></div>
-            <div className="metric-grid">
-              <Metric icon={ClipboardList} label="Orders today" value={dashboardData?.summary.ordersToday ?? 0} note="Across all channels" />
-              <Metric icon={TrendingUp} label="Revenue today" value={money(dashboardData?.summary.revenueToday ?? 0)} note="Excludes cancelled" />
-              <Metric icon={Coffee} label="Menu available" value={`${dashboardData?.summary.availableItems ?? items.filter((item) => item.isAvailable).length}/${dashboardData?.summary.menuItems ?? items.length}`} note="Ready to order" />
-              <Metric icon={Users} label="Customers" value={dashboardData?.summary.customers ?? 0} note="Registered members" />
-            </div>
-            <div className="admin-grid">
-              <article className="panel menu-management"><div className="panel-heading"><div><span className="eyebrow">Menu control</span><h2>Availability</h2></div><button className="outline-button"><Plus size={16} /> Add item</button></div><div className="manage-list">{items.map((item) => <div key={item.id}><img src={item.imageUrl} alt="" /><span><strong>{item.name}</strong><small>{item.category} · {money(item.price)}</small></span><button className={item.isAvailable ? "availability on" : "availability"} onClick={() => toggleAvailability(item)}><span />{item.isAvailable ? "Available" : "Paused"}</button></div>)}</div></article>
-              <article className="panel"><div className="panel-heading"><div><span className="eyebrow">Latest activity</span><h2>Recent orders</h2></div></div><div className="recent-orders">{(dashboardData?.recentOrders ?? []).map((order) => <div key={order.id}><span><strong>{order.orderNumber}</strong><small>{order.customerName}</small></span><span className={`status status-${order.status}`}>{order.status}</span><b>{money(order.total)}</b></div>)}{!dashboardData?.recentOrders.length && <div className="soft-empty">Orders will appear when MySQL is connected.</div>}</div></article>
-            </div>
-          </section>
-        )}
       </main>
 
       <footer className="site-footer"><Logo /><p>Specialty coffee, thoughtfully made in Kathmandu.</p><div><button onClick={() => navigate("menu")}>Menu</button><button onClick={() => navigate("home")}>Our story</button><span>© 2026 CafeX</span></div></footer>
@@ -604,29 +590,38 @@ function MenuCard({ item, quantity, favorite, onFavorite, onAdd }) {
   return <article className={`menu-card ${!item.isAvailable ? "unavailable" : ""}`}><div className="menu-image"><img src={item.imageUrl} alt={item.name} />{item.badge && <span className="item-badge">{item.badge}</span>}<button className={favorite ? "favorite-button active" : "favorite-button"} onClick={() => onFavorite(item.id)} aria-label={`Favorite ${item.name}`}><Heart size={18} fill={favorite ? "currentColor" : "none"} /></button></div><div className="menu-card-body"><div><small>{item.category}</small><h3>{item.name}</h3><p>{item.description}</p></div><div className="card-meta"><span><Clock3 size={14} /> {item.prepMinutes} min</span><strong>{money(item.price)}</strong></div><button className="add-button" disabled={!item.isAvailable} onClick={() => onAdd(item.id)}>{item.isAvailable ? <>{quantity > 0 ? `${quantity} in cart` : "Add to order"}<Plus size={17} /></> : "Unavailable"}</button></div></article>;
 }
 
-function Metric({ icon: Icon, label, value, note }) {
-  return <article className="metric-card"><div><Icon /></div><span>{label}</span><strong>{value}</strong><small>{note}</small></article>;
+function CustomerOrderRow({ order, active, estimatedReady }) {
+  const showServed = !active && order.status !== "cancelled";
+  const showPrepared = estimatedReady && ["pending", "preparing"].includes(order.status);
+  const statusLabel = showServed ? "served" : showPrepared ? "prepared" : order.status;
+  const statusStyle = showServed ? "completed" : showPrepared ? "ready" : order.status;
+  const fulfillment = order.fulfillment.replace("_", " ");
+  const fulfillmentLabel = `${fulfillment.charAt(0).toUpperCase()}${fulfillment.slice(1)}`;
+
+  return <article className="order-row"><OrderImages items={order.items} /><div><small>{order.orderNumber}</small><strong>{fulfillmentLabel}{order.tableNumber ? ` · Table ${order.tableNumber}` : ""}</strong>{order.items?.length > 0 && <span className="order-item-summary">{order.items.map((item) => `${item.quantity}× ${item.name}`).join(", ")}</span>}<span>{new Date(order.createdAt).toLocaleString()}</span></div><div><span className={`status status-${statusStyle}`}>{statusLabel}</span><strong>{money(order.total)}</strong></div></article>;
 }
 
-function StaffOrderCard({ order, busy, onStatus }) {
-  const nextAction = order.status === "ready"
-    ? { status: "completed", label: "Complete order" }
-    : order.status === "pending"
-      ? { status: "preparing", label: "Start preparing" }
-      : { status: "ready", label: "Mark ready" };
+function TotalBill({ order }) {
+  const items = order.items ?? [];
+  const calculatedSubtotal = items.reduce(
+    (sum, item) => sum + Number(item.unitPrice ?? 0) * Number(item.quantity ?? 0),
+    0,
+  );
+  const subtotal = Number(order.subtotal ?? calculatedSubtotal);
+  const tax = Number(order.tax ?? subtotal * 0.13);
+  const total = Number(order.total ?? subtotal + tax);
 
-  return <article className={`staff-order-card staff-order-${order.status}`}><div className="staff-order-top"><div><span className={`status status-${order.status}`}>{order.status}</span><small>{order.orderNumber}</small></div><strong>{order.tableNumber ? `Table ${order.tableNumber}` : "Dine in"}</strong></div><div className="staff-customer"><OrderImages items={order.items} /><span><strong>{order.customerName}</strong><small>{new Date(order.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · {money(order.total)}</small></span></div><div className="staff-item-list">{order.items?.map((item) => <div key={`${order.id}-${item.menuItemId ?? item.name}`}><b>{item.quantity}×</b><span>{item.name}</span></div>)}</div><button className="button staff-status-button" disabled={busy} onClick={() => onStatus(order, nextAction.status)}>{busy ? <><LoaderCircle className="spin" /> Updating…</> : <>{nextAction.label} <ArrowRight size={17} /></>}</button></article>;
+  return <article className="total-bill" aria-labelledby="total-bill-title"><div className="total-bill-heading"><div><span className="eyebrow">Your current check</span><h2 id="total-bill-title">Total bill</h2><p>{order.orderNumber}</p></div><div className="bill-table"><small>Dine-in table</small><strong>{order.tableNumber ? `Table ${order.tableNumber}` : "Not selected"}</strong></div></div><div className="bill-items">{items.map((item) => <div key={`${order.id}-${item.menuItemId ?? item.name}`}><span><b>{item.quantity}×</b> {item.name}</span><strong>{money(Number(item.unitPrice ?? 0) * Number(item.quantity ?? 0))}</strong></div>)}</div><div className="bill-totals"><div><span>Subtotal</span><strong>{money(subtotal)}</strong></div><div><span>Tax (13%)</span><strong>{money(tax)}</strong></div><div className="bill-grand-total"><span>Total bill</span><strong>{money(total)}</strong></div></div></article>;
 }
 
-function LiveOrderNotice({ order, remainingMinutes }) {
-  const ready = order.status === "ready";
-  const almostReady = !ready && remainingMinutes === 0;
+function LiveOrderNotice({ order, remainingSeconds }) {
+  const readyToServe = order.status === "ready" || remainingSeconds === 0;
   const itemSummary = order.items?.map((item) => `${item.quantity}× ${item.name}`).join(", ");
   const destination = order.fulfillment === "dine_in" && order.tableNumber
     ? `We will bring it to Table ${order.tableNumber}.`
     : "Collect it from the CafeX pickup counter.";
 
-  return <article className={`live-order-notice ${ready ? "is-ready" : ""}`}><div><span className="live-pill"><span /> Live order · {order.orderNumber}</span><h2>{ready ? "Your order is ready." : "Your order is being prepared."}</h2><p>{ready ? destination : almostReady ? `The kitchen is adding the finishing touches. ${destination}` : `This estimate is based on the food and drinks in your order. ${destination}`}</p>{order.items?.length > 0 && <div className="live-order-products"><OrderImages items={order.items} large /><span>{itemSummary}</span></div>}</div><div className="prep-estimate"><Clock3 /><strong>{ready ? "Ready" : almostReady ? "Soon" : `${remainingMinutes} min`}</strong><small>{ready ? order.tableNumber ? `table ${order.tableNumber}` : "for pickup" : "estimated time"}</small></div></article>;
+  return <article className={`live-order-notice ${readyToServe ? "is-ready" : ""}`}><div><span className="live-pill"><span /> Live order · {order.orderNumber}</span><h2>{readyToServe ? "Your order is ready to serve." : "Your order is preparing."}</h2><p>{readyToServe ? destination : `This estimate is based on the food and drinks in your order. ${destination}`}</p>{order.items?.length > 0 && <div className="live-order-products"><OrderImages items={order.items} large /><span>{itemSummary}</span></div>}</div><div className="prep-estimate"><Clock3 /><strong>{readyToServe ? "Ready" : formatCountdown(remainingSeconds)}</strong><small>{readyToServe ? order.tableNumber ? `table ${order.tableNumber}` : "for pickup" : "time remaining"}</small></div></article>;
 }
 
 function OrderImages({ items = [], large = false }) {

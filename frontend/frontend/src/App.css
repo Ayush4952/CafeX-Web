@@ -145,9 +145,26 @@ h1, h2, h3, p { margin-top: 0; }
 .live-order-notice.is-ready { background: linear-gradient(125deg, #385336, #607d58); }
 .prep-estimate { min-width: 145px; min-height: 145px; z-index: 1; padding: 20px; border: 1px solid rgba(255,255,255,.18); border-radius: 22px; display: grid; place-items: center; align-content: center; gap: 5px; background: rgba(255,255,255,.08); backdrop-filter: blur(8px); }
 .prep-estimate svg { color: #f2cc88; }
-.prep-estimate strong { font: 700 31px Georgia, serif; }
+.prep-estimate strong { font: 700 31px Georgia, serif; font-variant-numeric: tabular-nums; }
 .prep-estimate small { color: rgba(255,255,255,.65); font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 @keyframes live-pulse { 70% { box-shadow: 0 0 0 9px rgba(143,209,130,0); } 100% { box-shadow: 0 0 0 0 rgba(143,209,130,0); } }
+.total-bill { margin-top: 22px; padding: 28px 30px; border: 1px solid var(--line); border-radius: 26px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .42fr); gap: 28px 48px; background: rgba(255,250,243,.94); box-shadow: 0 14px 38px rgba(62,39,24,.08); }
+.total-bill-heading { grid-column: 1 / -1; display: flex; align-items: end; justify-content: space-between; gap: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
+.total-bill-heading h2 { margin: 7px 0 4px; font: 700 34px/1 Georgia, serif; }
+.total-bill-heading p { margin: 0; color: var(--muted); font-size: 12px; }
+.bill-table { min-width: 150px; padding: 12px 16px; border-radius: 16px; display: grid; gap: 4px; text-align: right; color: white; background: var(--coffee); }
+.bill-table small { color: rgba(255,255,255,.68); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.bill-table strong { font: 700 20px Georgia, serif; }
+.bill-items { display: grid; align-content: start; gap: 12px; }
+.bill-items > div, .bill-totals > div { display: flex; align-items: center; justify-content: space-between; gap: 22px; }
+.bill-items > div { padding: 0 0 12px; border-bottom: 1px dashed var(--line); }
+.bill-items span { color: var(--muted); }
+.bill-items b { margin-right: 5px; color: var(--coffee); }
+.bill-totals { padding: 18px; border-radius: 18px; display: grid; align-content: start; gap: 12px; background: rgba(234,216,193,.38); }
+.bill-totals span { color: var(--muted); }
+.bill-grand-total { margin-top: 4px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--ink); }
+.bill-grand-total span { color: var(--ink); font-weight: 800; }
+.bill-grand-total strong { color: var(--coffee); font: 700 24px Georgia, serif; }
 .orders-list { margin-top: 44px; display: grid; gap: 12px; }
 .order-row { padding: 22px; border: 1px solid var(--line); border-radius: 22px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 18px; background: var(--paper); }
 .order-icon { width: 50px; height: 50px; border-radius: 15px; display: grid; place-items: center; color: var(--latte); background: rgba(185,122,74,.12); }
@@ -176,6 +193,15 @@ h1, h2, h3, p { margin-top: 0; }
 .staff-section-heading { margin: 38px 0 18px; display: flex; align-items: end; justify-content: space-between; gap: 20px; }
 .staff-section-heading h2 { margin: 8px 0 0; font: 700 35px/1 Georgia, serif; }
 .staff-section-heading > strong { padding: 8px 12px; border-radius: 999px; color: var(--coffee); background: rgba(185,122,74,.12); font-size: 12px; }
+.table-bill-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.table-bill-card { min-width: 0; padding: 17px; border: 1px solid var(--line); border-radius: 20px; display: flex; align-items: center; gap: 15px; background: rgba(255,250,243,.9); box-shadow: 0 8px 25px rgba(62,39,24,.06); }
+.table-bill-card > div { width: 58px; height: 58px; flex: 0 0 58px; border-radius: 17px; display: grid; place-items: center; align-content: center; color: white; background: var(--coffee); }
+.table-bill-card > div span { font-size: 8px; font-weight: 850; letter-spacing: .1em; text-transform: uppercase; opacity: .65; }
+.table-bill-card > div strong { font: 700 27px/1 Georgia, serif; }
+.table-bill-card > span { min-width: 0; display: grid; gap: 6px; }
+.table-bill-card small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 10px; }
+.table-bill-card b { font: 700 20px Georgia, serif; }
+.table-bills-empty { grid-column: 1 / -1; padding: 24px; border: 1px dashed var(--line); border-radius: 18px; background: rgba(255,250,243,.55); text-align: center; }
 .staff-order-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .staff-order-card { min-width: 0; padding: 22px; border: 1px solid var(--line); border-top: 5px solid #d29b5d; border-radius: 24px; display: flex; flex-direction: column; background: rgba(255,250,243,.92); box-shadow: 0 12px 35px rgba(62,39,24,.08); }
 .staff-order-card.staff-order-ready { border-top-color: #67885e; box-shadow: 0 12px 35px rgba(74,110,67,.13); }
@@ -307,6 +333,7 @@ h1, h2, h3, p { margin-top: 0; }
   .loyalty-card { grid-column: 1 / -1; }
   .dashboard-panels, .admin-grid { grid-template-columns: 1fr; }
   .staff-order-grid { grid-template-columns: 1fr 1fr; }
+  .table-bill-grid { grid-template-columns: 1fr 1fr; }
   .metric-grid { grid-template-columns: 1fr 1fr; }
   .site-footer { grid-template-columns: 1fr 1fr; }
   .site-footer > p { display: none; }
@@ -338,6 +365,7 @@ h1, h2, h3, p { margin-top: 0; }
   .story-section > div:last-child { grid-column: 1; }
   .account-grid, .metric-grid { grid-template-columns: 1fr; }
   .staff-metrics, .staff-order-grid { grid-template-columns: 1fr; }
+  .table-bill-grid { grid-template-columns: 1fr; }
   .staff-header-actions { width: 100%; justify-content: space-between; }
   .staff-completed-list article { grid-template-columns: auto 1fr auto; }
   .staff-completed-list article > b { grid-column: 2; }
@@ -352,6 +380,9 @@ h1, h2, h3, p { margin-top: 0; }
   .live-order-products { align-items: flex-start; flex-direction: column; }
   .prep-estimate { width: 100%; min-height: 95px; grid-template-columns: auto auto; column-gap: 10px; }
   .prep-estimate small { grid-column: 1 / -1; }
+  .total-bill { padding: 22px; grid-template-columns: 1fr; gap: 20px; }
+  .total-bill-heading { align-items: stretch; flex-direction: column; }
+  .bill-table { text-align: left; }
   .panel { padding: 20px; }
   .panel-heading { align-items: flex-start; flex-direction: column; }
   .manage-list > div { grid-template-columns: 52px 1fr; }
