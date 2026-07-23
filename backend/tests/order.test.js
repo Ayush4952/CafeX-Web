@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calculateOrderTotals, createOrderNumber } from "../utils/order.js";
+import {
+  calculateEstimatedPrepMinutes,
+  calculateOrderTotals,
+  createOrderNumber,
+} from "../utils/order.js";
 
 test("calculates subtotal, tax, and total", () => {
   const totals = calculateOrderTotals([
@@ -12,4 +16,17 @@ test("calculates subtotal, tax, and total", () => {
 
 test("creates CafeX order numbers", () => {
   assert.match(createOrderNumber(12345), /^CX-12345-[A-Z0-9]{4}$/);
+});
+
+test("estimates preparation time from the slowest item, quantity, and kitchen load", () => {
+  const estimate = calculateEstimatedPrepMinutes([
+    { prepMinutes: 8, quantity: 1 },
+    { prepMinutes: 12, quantity: 2 },
+  ], () => 0.75);
+
+  assert.equal(estimate, 16);
+});
+
+test("uses a safe default preparation estimate for an empty order", () => {
+  assert.equal(calculateEstimatedPrepMinutes([], () => 0), 10);
 });
