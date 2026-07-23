@@ -1,11 +1,12 @@
 USE cafex;
 
 INSERT INTO categories (name, slug, icon, sort_order) VALUES
-  ('Coffee', 'coffee', 'coffee', 1),
-  ('Tea', 'tea', 'leaf', 2),
-  ('Bakery', 'bakery', 'croissant', 3),
-  ('Breakfast', 'breakfast', 'sunrise', 4),
-  ('Cold Drinks', 'cold-drinks', 'glass-water', 5)
+  ('Fast Service', 'fast-service', 'clock', 1),
+  ('Coffee', 'coffee', 'coffee', 2),
+  ('Tea', 'tea', 'leaf', 3),
+  ('Bakery', 'bakery', 'croissant', 4),
+  ('Breakfast', 'breakfast', 'sunrise', 5),
+  ('Cold Drinks', 'cold-drinks', 'glass-water', 6)
 ON DUPLICATE KEY UPDATE name = VALUES(name), icon = VALUES(icon), sort_order = VALUES(sort_order);
 
 INSERT INTO menu_items
@@ -45,6 +46,46 @@ UNION ALL
 SELECT id, 'Cafe Americano', 'Fresh espresso lengthened with hot water for a clean, bold cup.', 180.00,
   'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=900&q=85', NULL, 5, TRUE, FALSE
 FROM categories WHERE slug = 'coffee'
+UNION ALL
+SELECT id, 'Express Espresso', 'A rich double espresso pulled to order and ready in two minutes.', 150.00,
+  'https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?auto=format&fit=crop&w=900&q=85', 'Fast service', 2, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Espresso Macchiato', 'Double espresso finished with a small spoon of silky milk foam.', 170.00,
+  'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=900&q=85', '2 min', 2, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Nitro Cold Brew', 'Chilled cold brew poured from the tap with a smooth cascading finish.', 220.00,
+  'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=900&q=85', '1 min', 1, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Iced Espresso Tonic', 'Bright espresso poured over tonic water and ice.', 210.00,
+  '/iced-americano.png', '2 min', 2, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Mineral Water', 'Chilled bottled mineral water, ready to take to your table.', 80.00,
+  'https://images.unsplash.com/photo-1559839914-17aae19cec71?auto=format&fit=crop&w=900&q=85', '1 min', 1, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Sparkling Lemon Water', 'Sparkling water served cold with a fresh lemon slice.', 120.00,
+  '/strawberry-lemonade.jpg', '1 min', 1, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Banana Bread Slice', 'A ready-to-serve slice of house-baked banana walnut bread.', 170.00,
+  '/banana-bread.jpg', '1 min', 1, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Blueberry Muffin To Go', 'A fresh blueberry muffin packed for a quick café stop.', 190.00,
+  'https://images.unsplash.com/photo-1607958996333-41aef7caefaa?auto=format&fit=crop&w=900&q=85', '1 min', 1, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Butter Croissant To Go', 'A flaky butter croissant warmed and packed for quick service.', 180.00,
+  'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&w=900&q=85', '2 min', 2, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
+UNION ALL
+SELECT id, 'Granola Yogurt Cup', 'Creamy yogurt layered with granola and Himalayan honey.', 200.00,
+  'https://images.unsplash.com/photo-1511690743698-d9d85f2fbf38?auto=format&fit=crop&w=900&q=85', '2 min', 2, TRUE, FALSE
+FROM categories WHERE slug = 'fast-service'
 UNION ALL
 SELECT id, 'Himalayan Black Tea', 'Bright high-grown black tea with honeyed malt and floral notes.', 140.00,
   'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=900&q=85', 'Nepal grown', 6, TRUE, FALSE
@@ -95,11 +136,11 @@ SELECT id, 'Granola Yogurt Bowl', 'Creamy yogurt, house granola, fresh fruit and
 FROM categories WHERE slug = 'breakfast'
 UNION ALL
 SELECT id, 'Iced Americano', 'Double espresso poured over cold water and ice.', 190.00,
-  'https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=900&q=85', NULL, 4, TRUE, FALSE
+  '/iced-americano.png', NULL, 4, TRUE, FALSE
 FROM categories WHERE slug = 'cold-drinks'
 UNION ALL
 SELECT id, 'Mango Lassi', 'Ripe mango blended with yogurt, cardamom and a touch of honey.', 250.00,
-  'https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&w=900&q=85', 'Seasonal', 5, TRUE, FALSE
+  '/mango-lassi.png', 'Seasonal', 5, TRUE, FALSE
 FROM categories WHERE slug = 'cold-drinks'
 UNION ALL
 SELECT id, 'Strawberry Lemonade', 'Fresh strawberry, lemon and sparkling water over ice.', 220.00,
@@ -110,6 +151,7 @@ SELECT id, 'Iced Matcha', 'Whisked matcha, cold milk and vanilla served over ice
   'https://images.unsplash.com/photo-1536256263959-770b48d82b0a?auto=format&fit=crop&w=900&q=85', NULL, 6, TRUE, FALSE
 FROM categories WHERE slug = 'cold-drinks'
 ON DUPLICATE KEY UPDATE
+  category_id = VALUES(category_id),
   description = VALUES(description),
   price = VALUES(price),
   image_url = VALUES(image_url),
